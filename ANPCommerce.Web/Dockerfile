@@ -1,20 +1,13 @@
-FROM mcr.microsoft.com/dotnet/core/aspnet:2.2-stretch-slim AS base
-WORKDIR /app
+FROM mcr.microsoft.com/dotnet/core/sdk:2.2 as publish
+WORKDIR /publish
+COPY ANPCommerce.Web.csproj .
+RUN dotnet restore "ANPCommerce.Web.csproj"
+COPY . .
+RUN dotnet publish "ANPCommerce.Web.csproj" -c Release -o ./out
+
+FROM mcr.microsoft.com/dotnet/core/sdk:2.2
+WORKDIR /var/www/aspnetcoreapp
+COPY --from=publish /publish/out .
 EXPOSE 80
 EXPOSE 443
-
-FROM mcr.microsoft.com/dotnet/core/sdk:2.2-stretch AS build
-WORKDIR /src
-COPY ["ANPCommerce.Web/ANPCommerce.Web.csproj", "ANPCommerce.Web/"]
-RUN dotnet restore "ANPCommerce.Web/ANPCommerce.Web.csproj"
-COPY . .
-WORKDIR "/src/ANPCommerce.Web"
-RUN dotnet build "ANPCommerce.Web.csproj" -c Release -o /app
-
-FROM build AS publish
-RUN dotnet publish "ANPCommerce.Web.csproj" -c Release -o /app
-
-FROM base AS final
-WORKDIR /app
-COPY --from=publish /app .
 ENTRYPOINT ["dotnet", "ANPCommerce.Web.dll"]
